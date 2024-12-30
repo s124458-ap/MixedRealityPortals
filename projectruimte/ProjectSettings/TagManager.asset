@@ -15,6 +15,7 @@ TagManager:
   - bakkereten
   - crash
   - lamp
+  - bakker
   layers:
   - Default
   - TransparentFX

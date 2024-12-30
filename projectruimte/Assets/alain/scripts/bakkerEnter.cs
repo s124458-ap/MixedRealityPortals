@@ -6,11 +6,15 @@ public class bakkerEnter : MonoBehaviour
 {
     private GameObject player;
     private GameObject bakkersTv;
+    private GameObject bakker;
+    private AudioSource bakkersGreeting;
     // Start is called before the first frame update
     void Start()
     {
         player = GameObject.FindWithTag("speler");
         bakkersTv = GameObject.FindWithTag("bakkerstv");
+        bakker = GameObject.FindWithTag("bakker");
+        bakkersGreeting = bakker.GetComponent <AudioSource>();
     }
 
     public void GaBinnen()
@@ -20,5 +24,6 @@ public class bakkerEnter : MonoBehaviour
         Debug.Log("HI");
         PlayVideo bakkersfilm = bakkersTv.GetComponent<PlayVideo>();
         bakkersfilm.Play();
+        bakkersGreeting.Play();
     }
 }

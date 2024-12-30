@@ -14,12 +14,12 @@ public class raycastFocus : MonoBehaviour
     private LineRenderer laserLine;
     private float Timer;
     private int seconde = 1;
-    public float moodMeter = 100f;
+    public float moodMeter = 50f;
     public Text menuText;
     private GameObject[] npcs;
     private WeatherController weatherController;
     private float stareTimer = 0f;
-    [SerializeField] private float maxStareEffect = 10f; // How much the mood changes per second
+    [SerializeField] private float maxStareEffect = 1f; // How much the mood changes per second
     [SerializeField] private float recoveryRate = 0.5f; // How fast mood recovers when not staring
     private float moodChangeVelocity = 0f;
 
@@ -52,16 +52,29 @@ public class raycastFocus : MonoBehaviour
             laserLine.SetPosition(1, hit.point);
             if (hit.rigidbody != null)
             {
-                if (hit.transform.CompareTag("goodNews"))
+                if (hit.transform.CompareTag("goodNews") || hit.transform.CompareTag("badNews"))
                 {
-                    moodMeter += maxStareEffect * Time.deltaTime;
-                    moodMeter = Mathf.Clamp(moodMeter, 0f, 100f);
+                    stareTimer += Time.deltaTime;
+                    float moodChange = maxStareEffect * Time.deltaTime;
+
+                    if (hit.transform.CompareTag("goodNews"))
+                    {
+                        moodMeter += moodChange;
+                        moodMeter = Mathf.Clamp(moodMeter, 0f, 100f);
+                    }
+                    else if (hit.transform.CompareTag("badNews"))
+                    {
+                        moodMeter -= moodChange;
+                        moodMeter = Mathf.Clamp(moodMeter, 0f, 100f);
+                    }
                 }
-                else if (hit.transform.CompareTag("badNews"))
-                {
-                    moodMeter -= maxStareEffect * Time.deltaTime;
-                    moodMeter = Mathf.Clamp(moodMeter, 0f, 100f);
-                }
+            }
+            else
+            {
+                // Gradually return to neutral when not staring at anything
+                stareTimer = 0f;
+                float neutralMood = 50f;
+                moodMeter = Mathf.MoveTowards(moodMeter, neutralMood, recoveryRate * Time.deltaTime);
             }
         }
         else

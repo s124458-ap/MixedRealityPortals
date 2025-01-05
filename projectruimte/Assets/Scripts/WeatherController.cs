@@ -45,6 +45,18 @@ public class WeatherController : MonoBehaviour
     private ParticleSystem[] fireSystems;
     private Light[] fireLights;
 
+    private bool isWaitingAtMax = false;
+    private float maxWaitTimer = 0f;
+    private const float MAX_WAIT_DURATION = 10f; // 10 seconds wait at 100%
+
+    private bool isAutoResetting = false;
+
+    [Header("Narration")]
+    [SerializeField] private AudioSource narratorAudio;
+    private bool hasPlayedNarration = false;
+
+    public bool hasCompletedCycle = false;
+
     private void Start()
     {
         if (rainSystem != null)
@@ -59,9 +71,9 @@ public class WeatherController : MonoBehaviour
             using3DSize = true;
         }
 
-        // Start with clear weather
-        SetWeatherSeverity(100f);
+        // Start with clear weather without triggering narration
         currentWeatherSeverity = 100f;
+        targetWeatherSeverity = 100f;
 
         // Get all fire particle systems and lights from children
         if (fireParent != null)
@@ -85,29 +97,32 @@ public class WeatherController : MonoBehaviour
 
     private void Update()
     {
-        if (autoTestWeather)
+        // If weather is at minimum, wait and then reset
+        if (currentWeatherSeverity <= 0.1f && !isWaitingAtMax && !hasCompletedCycle)
         {
-            // Reset timer and weather if just starting the test
-            if (testTimer == 0f)
-            {
-                SetWeatherSeverity(100f);
-                currentWeatherSeverity = 100f;
-            }
-
-            testTimer += Time.deltaTime;
-            float progressPercentage = 100f - ((testTimer / testDuration) * 100f);
-            SetWeatherSeverity(progressPercentage);
-
-            if (testTimer >= testDuration)
-            {
-                autoTestWeather = false;
-                testTimer = 0f;
-            }
+            isWaitingAtMax = true;
+            maxWaitTimer = 0f;
         }
 
-        // Smoothly transition weather severity
-        currentWeatherSeverity = Mathf.Lerp(currentWeatherSeverity, targetWeatherSeverity,
-            Time.deltaTime * weatherTransitionSpeed);
+        if (isWaitingAtMax)
+        {
+            maxWaitTimer += Time.deltaTime;
+            if (maxWaitTimer >= MAX_WAIT_DURATION)
+            {
+                isWaitingAtMax = false;
+                hasCompletedCycle = true;
+                // Temporarily increase transition speed
+                SetWeatherSeverity(100f);
+                if (narratorAudio != null)
+                {
+                    narratorAudio.Play();
+                }
+            }
+        }
+        weatherTransitionSpeed = 0.3f;
+        // Smoothly transition weather
+        currentWeatherSeverity = Mathf.MoveTowards(currentWeatherSeverity, targetWeatherSeverity,
+            Time.deltaTime * weatherTransitionSpeed * 100f);
 
         UpdateWeatherEffects();
     }
@@ -292,6 +307,10 @@ public class WeatherController : MonoBehaviour
 
     public void SetWeatherSeverity(float severity)
     {
+        Debug.Log($"Weather severity received: {severity}. Current: {currentWeatherSeverity}, Target: {targetWeatherSeverity}");
+        // Round very small numbers to 0 and very large numbers to 100
+        if (severity < 0.1f) severity = 0f;
+        if (severity > 99.5f) severity = 100f;
         targetWeatherSeverity = Mathf.Clamp(severity, 0f, 100f);
     }
 
@@ -304,5 +323,10 @@ public class WeatherController : MonoBehaviour
     {
         // Simple linear wind increase
         return 1f + (currentWeatherSeverity / 100f * 2f); // Wind multiplier from 1 to 3
+    }
+
+    public bool IsAutoResetting()
+    {
+        return isAutoResetting;
     }
 }

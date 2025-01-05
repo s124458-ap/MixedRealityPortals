@@ -14,7 +14,7 @@ public class raycastFocus : MonoBehaviour
     private LineRenderer laserLine;
     private float Timer;
     private int seconde = 1;
-    public float moodMeter = 50f;
+    public float moodMeter = 100f;
     public Text menuText;
     private GameObject[] npcs;
     private WeatherController weatherController;
@@ -50,31 +50,14 @@ public class raycastFocus : MonoBehaviour
         if (Physics.Raycast(rayOrigin, fpsCam.transform.forward, out hit, focusRange))
         {
             laserLine.SetPosition(1, hit.point);
-            if (hit.rigidbody != null)
+            if (hit.transform != null && !weatherController.hasCompletedCycle)
             {
-                if (hit.transform.CompareTag("goodNews") || hit.transform.CompareTag("badNews"))
+                if (hit.transform.CompareTag("badNews"))
                 {
-                    stareTimer += Time.deltaTime;
-                    float moodChange = maxStareEffect * Time.deltaTime;
-
-                    if (hit.transform.CompareTag("goodNews"))
-                    {
-                        moodMeter += moodChange;
-                        moodMeter = Mathf.Clamp(moodMeter, 0f, 100f);
-                    }
-                    else if (hit.transform.CompareTag("badNews"))
-                    {
-                        moodMeter -= moodChange;
-                        moodMeter = Mathf.Clamp(moodMeter, 0f, 100f);
-                    }
+                    moodMeter -= Time.deltaTime * 20f; // Decrease mood faster
+                    moodMeter = Mathf.Clamp(moodMeter, 0f, 100f);
+                    weatherController.SetWeatherSeverity(moodMeter);
                 }
-            }
-            else
-            {
-                // Gradually return to neutral when not staring at anything
-                stareTimer = 0f;
-                float neutralMood = 50f;
-                moodMeter = Mathf.MoveTowards(moodMeter, neutralMood, recoveryRate * Time.deltaTime);
             }
         }
         else
@@ -82,7 +65,7 @@ public class raycastFocus : MonoBehaviour
             laserLine.SetPosition(1, rayOrigin + (fpsCam.transform.forward * focusRange));
         }
 
-        // Update UI and NPCs
+        // Update UI based on mood
         if (moodMeter >= 50)
         {
             menuText.text = "good";
@@ -91,19 +74,13 @@ public class raycastFocus : MonoBehaviour
                 npc.SetActive(true);
             }
         }
-        if (moodMeter < 50)
+        else
         {
             menuText.text = "bad";
             foreach (GameObject npc in npcs)
             {
                 npc.SetActive(false);
             }
-        }
-
-        // Update weather
-        if (weatherController != null)
-        {
-            weatherController.SetWeatherSeverity(moodMeter);
         }
     }
 }

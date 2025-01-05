@@ -21,6 +21,10 @@ public class WeatherController : MonoBehaviour
     [Header("Testing")]
     [SerializeField] private bool autoTestWeather = false;
     [SerializeField] private float testDuration = 180f; // 3 minutes
+
+    [Header("Object Visibility")]
+    [SerializeField] private GameObject[] objectsToHideBelow50;  // Objects that disappear in bad weather
+    [SerializeField] private GameObject[] objectsToShowBelow50;  // Objects that appear in bad weather
     private float testTimer = 0f;
 
     private ParticleSystem.EmissionModule rainEmission;
@@ -111,14 +115,38 @@ public class WeatherController : MonoBehaviour
             {
                 isWaitingAtMax = false;
                 hasCompletedCycle = true;
-                // Temporarily increase transition speed
                 SetWeatherSeverity(100f);
+
+                // Reset object visibility
+                if (objectsToHideBelow50 != null)
+                {
+                    foreach (GameObject obj in objectsToHideBelow50)
+                    {
+                        if (obj != null)
+                        {
+                            obj.SetActive(true);  // Show objects that were hidden
+                        }
+                    }
+                }
+
+                if (objectsToShowBelow50 != null)
+                {
+                    foreach (GameObject obj in objectsToShowBelow50)
+                    {
+                        if (obj != null)
+                        {
+                            obj.SetActive(false);  // Hide objects that were shown
+                        }
+                    }
+                }
+
                 if (narratorAudio != null)
                 {
                     narratorAudio.Play();
                 }
             }
         }
+
         weatherTransitionSpeed = 0.3f;
         // Smoothly transition weather
         currentWeatherSeverity = Mathf.MoveTowards(currentWeatherSeverity, targetWeatherSeverity,
@@ -130,6 +158,27 @@ public class WeatherController : MonoBehaviour
     private void UpdateWeatherEffects()
     {
         float normalizedSeverity = 1f - (currentWeatherSeverity / 100f);  // Invert the severity
+        if (objectsToHideBelow50 != null)
+        {
+            foreach (GameObject obj in objectsToHideBelow50)
+            {
+                if (obj != null)
+                {
+                    obj.SetActive(currentWeatherSeverity >= 50f);
+                }
+            }
+        }
+
+        if (objectsToShowBelow50 != null)
+        {
+            foreach (GameObject obj in objectsToShowBelow50)
+            {
+                if (obj != null)
+                {
+                    obj.SetActive(currentWeatherSeverity < 50f);
+                }
+            }
+        }
 
         // Rain starts very low and increases more gradually using a power curve
         float rainPercentage = Mathf.Max(0, (normalizedSeverity - 0.3f) / 0.7f);

@@ -14,7 +14,6 @@ public class WeatherAudioManager : MonoBehaviour
         public float fullVolumeAt = 90f;
         [Range(0f, 1f)]
         public float maxVolume = 1f;
-        public float fadeSpeed = 1f;
         public bool isPositiveSound = true;
     }
 
@@ -52,16 +51,32 @@ public class WeatherAudioManager : MonoBehaviour
             float severity = effect.isPositiveSound ? weatherSeverity : (100f - weatherSeverity);
             float targetVolume = 0f;
 
-            if (severity >= effect.fullVolumeAt)
-                targetVolume = effect.maxVolume;
-            else if (severity >= effect.startAt)
-                targetVolume = effect.maxVolume * ((severity - effect.startAt) / (effect.fullVolumeAt - effect.startAt));
+            if (!effect.isPositiveSound)
+            {
+                // For negative sounds (like wind and sirens)
+                // They should get louder as weather gets worse (severity gets lower)
+                if (weatherSeverity <= effect.startAt && weatherSeverity >= effect.fullVolumeAt)
+                {
+                    float t = (effect.startAt - weatherSeverity) / (effect.startAt - effect.fullVolumeAt);
+                    targetVolume = effect.maxVolume * t;
+                }
+                else if (weatherSeverity <= effect.fullVolumeAt)
+                {
+                    targetVolume = effect.maxVolume;
+                }
+            }
+            else
+            {
+                // Original calculation for positive sounds
+                if (severity >= effect.startAt)
+                {
+                    float t = (severity - effect.startAt) / (effect.fullVolumeAt - effect.startAt);
+                    t = Mathf.Clamp01(t);
+                    targetVolume = effect.maxVolume * t;
+                }
+            }
 
-            effect.source.volume = Mathf.Lerp(
-                effect.source.volume,
-                targetVolume,
-                Time.deltaTime * effect.fadeSpeed
-            );
+            effect.source.volume = targetVolume;
         }
     }
 }

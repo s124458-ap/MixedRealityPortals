@@ -64,7 +64,7 @@ public class WeatherController : MonoBehaviour
 
     // Add this dictionary to track contributions per object
     private Dictionary<GameObject, float> objectContributions = new Dictionary<GameObject, float>();
-    private const float MAX_CONTRIBUTION_PER_OBJECT = 50f;  // Maximum effect per object
+    private const float MAX_CONTRIBUTION_PER_OBJECT = 30f;  // Maximum effect per object
 
     private void Start()
     {

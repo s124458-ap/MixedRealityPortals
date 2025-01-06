@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Rendering;
+using System.Collections.Generic;
 
 public class WeatherController : MonoBehaviour
 {
@@ -60,6 +61,10 @@ public class WeatherController : MonoBehaviour
     private bool hasPlayedNarration = false;
 
     public bool hasCompletedCycle = false;
+
+    // Add this dictionary to track contributions per object
+    private Dictionary<GameObject, float> objectContributions = new Dictionary<GameObject, float>();
+    private const float MAX_CONTRIBUTION_PER_OBJECT = 50f;  // Maximum effect per object
 
     private void Start()
     {
@@ -146,12 +151,7 @@ public class WeatherController : MonoBehaviour
                 }
             }
         }
-
-        weatherTransitionSpeed = 0.3f;
-        // Smoothly transition weather
-        currentWeatherSeverity = Mathf.MoveTowards(currentWeatherSeverity, targetWeatherSeverity,
-            Time.deltaTime * weatherTransitionSpeed * 100f);
-
+        currentWeatherSeverity = Mathf.Lerp(currentWeatherSeverity, targetWeatherSeverity, weatherTransitionSpeed * Time.deltaTime);
         UpdateWeatherEffects();
     }
 
@@ -357,7 +357,6 @@ public class WeatherController : MonoBehaviour
     public void SetWeatherSeverity(float severity)
     {
         Debug.Log($"Weather severity received: {severity}. Current: {currentWeatherSeverity}, Target: {targetWeatherSeverity}");
-        // Round very small numbers to 0 and very large numbers to 100
         if (severity < 0.1f) severity = 0f;
         if (severity > 99.5f) severity = 100f;
         targetWeatherSeverity = Mathf.Clamp(severity, 0f, 100f);
@@ -377,5 +376,51 @@ public class WeatherController : MonoBehaviour
     public bool IsAutoResetting()
     {
         return isAutoResetting;
+    }
+
+    public void AdjustWeather(float amount, GameObject source)
+    {
+        if (!objectContributions.ContainsKey(source))
+        {
+            objectContributions[source] = 0f;
+        }
+
+        float totalContribution = Mathf.Abs(objectContributions[source]);
+        if (totalContribution >= MAX_CONTRIBUTION_PER_OBJECT)
+        {
+            return;  // Object has reached its contribution limit
+        }
+
+        // Calculate how much more this object can contribute
+        float remainingContribution = MAX_CONTRIBUTION_PER_OBJECT - totalContribution;
+        float actualChange = Mathf.Sign(amount) * Mathf.Min(Mathf.Abs(amount), remainingContribution);
+
+        objectContributions[source] += actualChange;
+
+        // Calculate total contributions from all objects
+        float totalContributions = 0f;
+        foreach (var contribution in objectContributions.Values)
+        {
+            totalContributions += contribution;
+        }
+
+        // Set weather severity based on base value (100) plus all contributions
+        SetWeatherSeverity(100f + totalContributions);
+
+        Debug.Log($"Object {source.name} total contribution: {objectContributions[source]}");
+    }
+
+    // Add this method to reset an object's contribution (call when weather resets)
+    private void ResetObjectContributions()
+    {
+        objectContributions.Clear();
+    }
+
+    // Call ResetObjectContributions when weather resets to 100
+    public void ResetWeather()
+    {
+        targetWeatherSeverity = 100f;
+        ResetObjectContributions();
+        // ... rest of your reset code ...
     }
 }

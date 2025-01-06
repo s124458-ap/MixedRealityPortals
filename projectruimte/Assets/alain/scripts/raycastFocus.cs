@@ -8,7 +8,7 @@ using UnityEngine.XR.OpenXR.Input;
 public class raycastFocus : MonoBehaviour
 {
     public Camera fpsCam;
-    public float focusRange = 15f;
+    public float focusRange = 30f;
     public Transform focusEnd;
     RaycastHit hit;
     private LineRenderer laserLine;
@@ -19,9 +19,9 @@ public class raycastFocus : MonoBehaviour
     private GameObject[] npcs;
     private WeatherController weatherController;
     private float stareTimer = 0f;
-    [SerializeField] private float maxStareEffect = 1f; // How much the mood changes per second
-    [SerializeField] private float recoveryRate = 0.5f; // How fast mood recovers when not staring
+    private const float MAX_CONTRIBUTION_PER_OBJECT = 50f;
     private float moodChangeVelocity = 0f;
+    private GameObject lastHitObject = null;
 
     // Start is called before the first frame update
     void Start()
@@ -54,14 +54,35 @@ public class raycastFocus : MonoBehaviour
             {
                 if (hit.transform.CompareTag("badNews"))
                 {
-                    moodMeter -= Time.deltaTime * 20f; // Decrease mood faster
-                    moodMeter = Mathf.Clamp(moodMeter, 0f, 100f);
-                    weatherController.SetWeatherSeverity(moodMeter);
+                    if (lastHitObject != hit.transform.gameObject)
+                    {
+                        lastHitObject = hit.transform.gameObject;
+                        stareTimer = 0f;
+                    }
+
+                    // Only update if we haven't reached the maximum contribution
+                    if (stareTimer < MAX_CONTRIBUTION_PER_OBJECT)
+                    {
+                        stareTimer += Time.deltaTime;
+                        float change = -Time.deltaTime * 10f;
+
+                        // Calculate remaining contribution allowed
+                        float remainingContribution = MAX_CONTRIBUTION_PER_OBJECT - stareTimer;
+                        if (Mathf.Abs(change) > remainingContribution)
+                        {
+                            change = -remainingContribution;
+                        }
+
+                        moodMeter = Mathf.Clamp(moodMeter + change, 0f, 100f);
+                        weatherController.AdjustWeather(change, hit.transform.gameObject);
+                    }
                 }
             }
         }
         else
         {
+            lastHitObject = null;
+            stareTimer = 0f;
             laserLine.SetPosition(1, rayOrigin + (fpsCam.transform.forward * focusRange));
         }
 

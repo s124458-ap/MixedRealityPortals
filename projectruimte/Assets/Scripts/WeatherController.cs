@@ -151,7 +151,7 @@ public class WeatherController : MonoBehaviour
                 }
             }
         }
-        currentWeatherSeverity = Mathf.Lerp(currentWeatherSeverity, targetWeatherSeverity, weatherTransitionSpeed * Time.deltaTime); hat
+        currentWeatherSeverity = Mathf.Lerp(currentWeatherSeverity, targetWeatherSeverity, weatherTransitionSpeed * Time.deltaTime);
         UpdateWeatherEffects();
     }
 
